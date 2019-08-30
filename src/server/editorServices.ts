@@ -1505,8 +1505,14 @@ namespace ts.server {
             const anySearchPathOk = !projectRootPath || !isSearchPathInProjectRoot();
             do {
                 const canonicalSearchPath = normalizedPathToPath(searchPath, this.currentDirectory, this.toCanonicalFileName);
+                const tsconfigTSServerFileName = asNormalizedPath(combinePaths(searchPath, "tsconfig.tsserver.json"));
+                let result = action(tsconfigTSServerFileName, combinePaths(canonicalSearchPath, "tsconfig.tsserver.json"));
+                if (result) {
+                    return tsconfigTSServerFileName;
+                }
+
                 const tsconfigFileName = asNormalizedPath(combinePaths(searchPath, "tsconfig.json"));
-                let result = action(tsconfigFileName, combinePaths(canonicalSearchPath, "tsconfig.json"));
+                 result = action(tsconfigFileName, combinePaths(canonicalSearchPath, "tsconfig.json"));
                 if (result) {
                     return tsconfigFileName;
                 }
