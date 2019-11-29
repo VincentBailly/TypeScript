@@ -2637,6 +2637,7 @@ declare namespace ts {
         incremental?: boolean;
         tsBuildInfoFile?: string;
         removeComments?: boolean;
+        resolutionPlatforms?: string[];
         rootDir?: string;
         rootDirs?: string[];
         skipLibCheck?: boolean;
@@ -8705,6 +8706,11 @@ declare namespace ts.server {
          * If it is it returns true irrespective of whether that directory exists on host
          */
         directoryExists(path: string): boolean;
+        /**
+         * Call super.getDirectories only if directory actually present on the host
+         * This is needed to ensure that we arent getting directories that we fake about presence for
+         */
+        getDirectories(path: string): string[];
         private realpathIfSymlinkedProjectReferenceDts;
         private getRealpath;
         private handleDirectoryCouldBeSymlink;
