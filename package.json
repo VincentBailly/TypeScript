@@ -2,7 +2,7 @@
     "name": "@msfast/typescript-platform-resolution",
     "author": "Microsoft Corp.",
     "homepage": "https://www.typescriptlang.org/",
-    "version": "3.7.3",
+    "version": "3.7.3-global-platforms",
     "license": "Apache-2.0",
     "description": "TypeScript is a language for application scale JavaScript development",
     "keywords": [
