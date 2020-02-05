@@ -1133,11 +1133,13 @@ namespace ts {
             
             let fileName = file;
             if (platform) {
-              let lastDot = file.lastIndexOf('.');
-              if (lastDot === -1) {
-                  return undefined;
+              const forkableExtensions = [".d.ts", ".tsx", ".ts", ".json", ".js"];
+              for (const extension of forkableExtensions) {
+                if (file.endsWith(extension)) {
+                  fileName = file.slice(0, file.length - extension.length) + `.${platform}${extension}`
+                  break;
+                }
               }
-              fileName = file.slice(0, lastDot + 1) + platform + file.slice(lastDot);
             }
 
             if (!onlyRecordFailures) {
