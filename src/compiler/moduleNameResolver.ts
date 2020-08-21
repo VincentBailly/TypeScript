@@ -1109,23 +1109,63 @@ namespace ts {
     }
 
     /** Return the file if it exists. */
-    function tryFile(fileName: string, onlyRecordFailures: boolean, state: ModuleResolutionState): string | undefined {
-        if (!onlyRecordFailures) {
-            if (state.host.fileExists(fileName)) {
-                if (state.traceEnabled) {
-                    trace(state.host, Diagnostics.File_0_exist_use_it_as_a_name_resolution_result, fileName);
-                }
-                return fileName;
-            }
-            else {
-                if (state.traceEnabled) {
-                    trace(state.host, Diagnostics.File_0_does_not_exist, fileName);
+    function tryFile(file: string, onlyRecordFailures: boolean, state: ModuleResolutionState): string | undefined {
+
+        /* 
+         * For more context about platform forking: https://github.com/microsoft/TypeScript/issues/17681
+         *
+         * The resolution platform env variable or configuration is a list of string. eg. ['ios', 'mobile', 'native']
+         * It describes the priority of the modules to resolve. eg. try index.ios.ts, then try index.mobile.ts, then try index.native.ts, then try index.ts.
+         * 
+         * The environment variable is set when working in VSCode and applies to all the projects. It is set according to the platform a given dev works on.
+         *   This scenario works well, it provides accurate type checking in good F12 experience.
+         * The compiler option is set separately for each project, this is used for building. A project will list all the extensions it contains. eg. ['ios', 'mobile', 'web'].
+         *   This scenario does not work very well, type checking is not accurate but at least tsc will always manage to resolve one module.
+         */
+        const resolution_platforms = (
+	(process.env['RESOLUTION_PLATFORMS'] && JSON.parse(process.env['RESOLUTION_PLATFORMS']))
+	    || state.compilerOptions.resolutionPlatforms);
+        if (resolution_platforms) {
+            for(let platform of resolution_platforms) {
+                let result = tryFileForPlatform(platform);
+                if (result) {
+                    return result;
                 }
             }
         }
-        state.failedLookupLocations.push(fileName);
-        return undefined;
-    }
+        return tryFileForPlatform();
+        
+        function tryFileForPlatform(platform?: string): string | undefined {
+            let fileName = file;
+            if (platform) {
+                // This piece of code is to prevent TS from trying to resolve index.d.web.ts instead of index.web.d.ts.
+                const forkableExtensions = [".d.ts", ".tsx", ".ts", ".json", ".js"];
+                for (const extension of forkableExtensions) {
+                    if (file.endsWith(extension)) {
+                        fileName = file.slice(0, file.length - extension.length) + `.${platform}${extension}`
+                        break;
+                    }
+                }
+            }
+
+            if (!onlyRecordFailures) {
+                if (state.host.fileExists(fileName)) {
+                    if (state.traceEnabled) {
+                        trace(state.host, Diagnostics.File_0_exist_use_it_as_a_name_resolution_result, fileName);
+                    }
+                    return fileName;
+                }
+                else {
+                    if (state.traceEnabled) {
+                        trace(state.host, Diagnostics.File_0_does_not_exist, fileName);
+                    }
+                }
+            }
+
+            state.failedLookupLocations.push(fileName);
+            return undefined;
+        }   
+    }   
 
     function loadNodeModuleFromDirectory(extensions: Extensions, candidate: string, onlyRecordFailures: boolean, state: ModuleResolutionState, considerPackageJson = true) {
         const packageInfo = considerPackageJson ? getPackageJsonInfo(candidate, onlyRecordFailures, state) : undefined;
